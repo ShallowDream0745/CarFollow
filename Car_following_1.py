@@ -119,7 +119,7 @@ def mpcSolver(state, v_p):
     
     solve_instance = {'x': vertcat(*x), 'f': L, 'g': vertcat(*g)}
     solve_function = nlpsol('Func', 'ipopt', solve_instance)  
-    
+    #test
     x_initial=[state_list,0]*NP
     x_initial.extend([state_list])
     control_sequence= solve_function(x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
