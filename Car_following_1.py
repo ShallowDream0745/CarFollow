@@ -62,77 +62,76 @@ def mpcSolver(state, v_p):
     control: (int)
     '''
 
-    state_list =list(state)
+    state_list = list(state)
     zero_list = np.zeros(DYNAMICS_NUM).tolist()
 
     control = MX.sym('x', ACTIONS_NUM)  # 1*1
     s = MX.sym('s', DYNAMICS_NUM)  # 1*3
     s_next = vertcat(
-            s[0]+DT*s[1]-DT*get_diffdes(v_p)*s[2],
-            s[1]-DT*s[2],
-            (1-DT/T_G)*s[2]+K_G/T_G*DT*control
-        )
+        s[0]+DT*s[1]-DT*get_diffdes(v_p)*s[2],
+        s[1]-DT*s[2],
+        (1-DT/T_G)*s[2]+K_G/T_G*DT*control
+    )
     get_next = Function('f', [s, control], [s_next])
 
     loss = W_D*s[0]*s[0]+W_V*s[1]*s[1]+W_A*control*control  # 1*1
     get_loss = Function('L', [s, control], [loss])
 
     constraint = -s[0]+(R*(v_p-s[1]-V_F_MEAN)+TAU_H)*s[1]\
-                - TAU_H*v_p+D_S0-D_0
-    get_constraint=Function('H',[s],[constraint])
-    
-    x = [None]*(2*NP+1)  # independent variable
-    x_min = [None]*(2*NP+1)
-    x_max = [None]*(2*NP+1)
+        - TAU_H*v_p+D_S0-D_0
+    get_constraint = Function('H', [s], [constraint])
 
-    x[0] = MX.sym('s0', DYNAMICS_NUM)  # 1*3
-    x_min[0] = state_list
-    x_max[0] = state_list
-
-    g = [None]*2*NP
-    g_min = [None]*2*NP
-    g_max = [None]*2*NP
-
+    # independent variable
+    x = [MX.sym('s0', DYNAMICS_NUM)]
+    x_min = state_list
+    x_max = state_list
+    # constraint variable
+    g = []
+    g_min = []
+    g_max = []
+    # loss function
     L = 0
 
     for time in range(NP):  # time:[0,NP-1]
         # control
-        u = MX.sym('u'+str(time))#1*1
-        x[2*time+1] = u
-        x_min[2*time+1] = control_min
-        x_max[2*time+1] = control_max
+        u = MX.sym('u'+str(time))  # 1*1
+        x += [u]
+        x_min += [control_min]
+        x_max += [control_max]
         # state
-        s_ = MX.sym('s'+str(time+1),DYNAMICS_NUM)#1*3
-        x[2*time+2] = s_
-        x_min[2*time+2] = state_min.tolist()
-        x_max[2*time+2] = state_max.tolist()
-        # constraint
-        g[2*time] = s_-get_next(x[2*time], u)#1*3
-        g_max[2*time] = zero_list
-        g_min[2*time] = zero_list
-        if not IS_USING_CBF:#Pointwise
-            g[2*time+1] = get_constraint(s_)
-            g_max[2*time+1]=0
-            g_min[2*time+1]=-np.inf
+        s_ = MX.sym('s'+str(time+1), DYNAMICS_NUM)  # 1*3
+        x += [s_]
+        x_min += state_min.tolist()
+        x_max += state_max.tolist()
+        # dynamic constraint
+        g += [s_-get_next(x[2*time], u)]
+        g_max += zero_list
+        g_min += zero_list
+        # designed constraint
+        if not IS_USING_CBF:  # Pointwise
+            g += [get_constraint(s_)]
+            g_max += [0]
+            g_min += [-np.inf]
+        elif time < 2:  # using CBF, only two steps
+            g += [get_constraint(s_)-(1-cbf_lambda)*get_constraint(x[2*time])]
+            g_max += [0]
+            g_min += [-np.inf]
         # loss
-        L=L+get_loss(s_,u)
-    
+        L = L+get_loss(s_, u)
+
     solve_instance = {'x': vertcat(*x), 'f': L, 'g': vertcat(*g)}
-    solve_function = nlpsol('Func', 'ipopt', solve_instance)  
-    #test
-    x_initial=[state_list,0]*NP
-    x_initial.extend([state_list])
-    control_sequence= solve_function(x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
+    solve_function = nlpsol('Func', 'ipopt', solve_instance)
+    # test
+    x_initial = [*state_list, 0]*NP
+    x_initial += state_list
+    control_sequence = solve_function(x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
     return np.array(control_sequence['x'])
-
-
-
 
 
 def generate_vp(tmax):  # generate v_p sequence
     half = math.floor(tmax/2)
     t_sequence = np.arange(tmax)
-    v_p1= 10+5*np.sin(t_sequence[: half]*DT*np.pi/10)
+    v_p1 = 10+5*np.sin(t_sequence[: half]*DT*np.pi/10)
     v_p2 = np.ones(tmax-half)*v_p1[-1]
     v_p = np.r_[v_p1, v_p2]
     plt.plot(t_sequence, v_p)
@@ -158,7 +157,7 @@ def main_loop(tmax):
 
 if __name__ == '__main__':
     IS_USING_CBF = False
-    #cbf_lambda = 0.2
+    cbf_lambda = 0.2
     max_time = 600
     i = 0
     main_loop(max_time)
