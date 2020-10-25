@@ -23,7 +23,7 @@ W_V = 1
 W_A = 5
 
 
-def get_des(x): return R*x*(x-V_F_MEAN)+TAU_H*x+D_0
+# def get_des(x): return R*x*(x-V_F_MEAN)+TAU_H*x+D_0
 def get_diffdes(x): return TAU_H+R*(2*x-V_F_MEAN)
 
 
@@ -40,18 +40,21 @@ state_max = np.array([delta_d_max, delta_v_max, a_f_max])
 
 
 def is_violating(control, state, v_p):
-
-    if (state < state_max or
-        state > state_min or
+    if (state[0] > state_max[0] or
+        state[1] > state_max[1] or
+        state[2] > state_max[2] or
+        state[0] < state_min[0] or
+        state[1] < state_min[1] or
+        state[2] < state_min[2] or
         control > control_max or
-            control < control_min):
+        control < control_min):
         return True
     return False
 
 
 def mpcSolver(state, v_p):
     '''
-    state:   (d-des,v_p-v_f,a_f)
+    state: np.array([d-des,v_p-v_f,a_f])
     v_p: speed of the front car
     des: expected distance between the car
     a_f: acceleration
@@ -62,7 +65,7 @@ def mpcSolver(state, v_p):
     control: (int)
     '''
 
-    state_list = list(state)
+    state_list = state.tolist()
     zero_list = np.zeros(DYNAMICS_NUM).tolist()
 
     control = MX.sym('x', ACTIONS_NUM)  # 1*1
@@ -83,8 +86,8 @@ def mpcSolver(state, v_p):
 
     # independent variable
     x = [MX.sym('s0', DYNAMICS_NUM)]
-    x_min = state_list
-    x_max = state_list
+    x_min = state_list.copy()
+    x_max = state_list.copy()
     # constraint variable
     g = []
     g_min = []
@@ -119,13 +122,14 @@ def mpcSolver(state, v_p):
         # loss
         L = L+get_loss(s_, u)
 
+    solve_options = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
     solve_instance = {'x': vertcat(*x), 'f': L, 'g': vertcat(*g)}
-    solve_function = nlpsol('Func', 'ipopt', solve_instance)
+    solve_function = nlpsol('Func', 'ipopt', solve_instance,solve_options)
     # test
     x_initial = [*state_list, 0]*NP
     x_initial += state_list
     control_sequence = solve_function(x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
-    return np.array(control_sequence['x'])
+    return np.array(control_sequence['x']).reshape(-1)
 
 
 def generate_vp(tmax):  # generate v_p sequence
@@ -141,16 +145,16 @@ def generate_vp(tmax):  # generate v_p sequence
 
 def main_loop(tmax):
     v_p = generate_vp(tmax)
-    state = (0, v_p[0], 0)  # suppose v_f[0]=v_p[0]
+    state = np.array([0, v_p[0], 0])  # suppose v_f[0]=v_p[0]
     for t in range(tmax):
         # get the control value and the next state
-        control = mpcSolver(state, v_p[t])[0]
-        state_ = np.array([
-            [x[0]+DT*x[1]-DT*get_diffdes(v_p)*x[2]],
-            [x[1]-DT*x[2]],
-            [(1-DT/T_G)*x[2]+K_G/TG*DT*control]
+        control = mpcSolver(state, v_p[t])[3]
+        state = np.array([
+            state[0]+DT*state[1]-DT*get_diffdes(v_p[t])*state[2],
+            state[1]-DT*state[2],
+            (1-DT/T_G)*state[2]+K_G/T_G*DT*control
         ])
-        if is_violating(control, x_, v_p):
+        if is_violating(control, state, v_p):
             return False
     return True
 

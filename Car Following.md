@@ -64,14 +64,20 @@ $$
 $$
 NP=2\\
 \ \\
-x=[s_0,u_0,s_1,u_1,s_2]\\
-x_{max}=[s_0,u_{max},s_{max},u_{max},s_{max}]\\
-x_{min}=[s_0,u_{min},s_{min},u_{min},s_{min}]\\
+x=[*s_0,u_0,*s_1,u_1,*s_2]\\
+x_{max}=[*s_0,u_{max},*s_{max},u_{max},*s_{max}]\\
+x_{min}=[*s_0,u_{min},*s_{min},u_{min},*s_{min}]\\
 \ \\
 g=[s_1-f(s_0),h(s_1),s_2-f(s_1),h(s_2)]\\
-g_{max}=[0,0,0,0]\\
-g_{min}=[0,-\infty,0,-\infty]\\
+g_{max}=[*0,0,*0,0]\\
+g_{min}=[*0,-\infty,*0,-\infty]\\
 \ \\
 L=l(u_0,s_1)+l(u_1,s_2)
 $$
 
+*if using CBF*:
+$$
+g=[s_1-f(s_0),h(s_1),s_2-f(s_1),h(s_2)]\\
+g_{max}=[0,(1-\lambda)h(s_0),0,(1-\lambda)h(s_1)]\\
+g_{min}=[0,-\infty,0,-\infty]
+$$
