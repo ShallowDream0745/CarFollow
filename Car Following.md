@@ -38,7 +38,11 @@ $$
 \Delta d-(r(v_f-v_{fmean})+\tau_h)\Delta v\ge -\tau_hv_p+d_{s0}-d_0
 $$
 
-#### 
+*which can be converted to*:
+$$
+-\Delta d+(r(v_p-\Delta v-v_{fmean})+\tau_h)\Delta v -\tau_hv_p+d_{s0}-d_0\leq 0
+$$
+
 
 #### Expected distance:
 
