@@ -47,7 +47,7 @@ def is_violating(control, state, v_p):
         state[1] < state_min[1] or
         state[2] < state_min[2] or
         control > control_max or
-        control < control_min):
+            control < control_min):
         return True
     return False
 
@@ -122,41 +122,63 @@ def mpcSolver(state, v_p):
         # loss
         L = L+get_loss(s_, u)
 
-    solve_options = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
+    solve_options = {'ipopt.print_level': 0,
+                     'ipopt.sb': 'yes', 'print_time': 0}
     solve_instance = {'x': vertcat(*x), 'f': L, 'g': vertcat(*g)}
-    solve_function = nlpsol('Func', 'ipopt', solve_instance,solve_options)
+    solve_function = nlpsol('Func', 'ipopt', solve_instance, solve_options)
     # test
     x_initial = [*state_list, 0]*NP
     x_initial += state_list
-    control_sequence = solve_function(x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
+    control_sequence = solve_function(
+        x0=x_initial, ubx=x_max, lbx=x_min, lbg=g_min, ubg=g_max)
     return np.array(control_sequence['x']).reshape(-1)
 
 
 def generate_vp(tmax):  # generate v_p sequence
-    half = math.floor(tmax/2)
+    mode = 2  # several modes of v_p
     t_sequence = np.arange(tmax)
-    v_p1 = 10+5*np.sin(t_sequence[: half]*DT*np.pi/10)
-    v_p2 = np.ones(tmax-half)*v_p1[-1]
-    v_p = np.r_[v_p1, v_p2]
-    plt.plot(t_sequence, v_p)
+    if mode == 1:
+        half = math.floor(tmax/2)
+        v_p1 = 10+5*np.sin(t_sequence[: half]*DT*np.pi/10)
+        v_p2 = np.ones(tmax-half)*v_p1[-1]
+        v_p = np.r_[v_p1, v_p2]
+    elif mode == 2:
+        thirdpoint1 = math.floor(tmax/3)
+        thirdpoint2 = math.floor(tmax*2/3)
+        v_p1 = np.ones(thirdpoint1)*10
+        v_p2 = np.linspace(10, 15, thirdpoint2-thirdpoint1)
+        v_p3 = np.ones(tmax-thirdpoint2)*v_p2[-1]
+        v_p = np.r_[v_p1, v_p2, v_p3]
+    plt.plot(t_sequence*DT, v_p)
+    plt.title('v_p: the speed of front car')
     plt.show()
     return v_p
+
+
+def plot_result(traj):
+    n = len(traj)
+    t = np.arange(n)
+    plt.plot(t*DT, traj)
+    plt.show()
 
 
 def main_loop(tmax):
     v_p = generate_vp(tmax)
     state = np.array([0, v_p[0], 0])  # suppose v_f[0]=v_p[0]
+    trajectory = [state[1]]
     for t in range(tmax):
         # get the control value and the next state
+        # the fourth element is the control
         control = mpcSolver(state, v_p[t])[3]
         state = np.array([
             state[0]+DT*state[1]-DT*get_diffdes(v_p[t])*state[2],
             state[1]-DT*state[2],
             (1-DT/T_G)*state[2]+K_G/T_G*DT*control
         ])
+        trajectory.append(state[1])
         if is_violating(control, state, v_p):
-            return False
-    return True
+            return (False, trajectory)
+    return (True, trajectory)
 
 
 if __name__ == '__main__':
@@ -164,4 +186,6 @@ if __name__ == '__main__':
     cbf_lambda = 0.2
     max_time = 600
     i = 0
-    main_loop(max_time)
+    result = main_loop(max_time)
+    print(result[0])
+    plot_result(result[1])
