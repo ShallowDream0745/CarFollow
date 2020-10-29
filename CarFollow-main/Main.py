@@ -3,7 +3,7 @@ import time
 from utils import *
 
 # config:
-tmax = 600
+TMAX = 750
 DYNAMICS_NUM = 3
 ACTIONS_NUM = 1
 
@@ -21,7 +21,7 @@ TTC = -2.5  # (s)
 
 
 def main(opt):
-    v_p = generate_vp(opt['vp_mode'], tmax)
+    v_p = generate_vp(opt['vp_mode'], TMAX)
     state = np.array([0, -1, 0])  # suppose v_f[0]=v_p[0]
     des_trajectory = []
     state_trajectory = []
@@ -29,7 +29,7 @@ def main(opt):
     distance_trajectory = []
     cal_time = 0.0
 
-    for t in range(tmax-1):
+    for t in range(TMAX-1):
         start_time = time.time()
         # get the control value and the next state
         # the fourth element is the control
@@ -56,8 +56,9 @@ def main(opt):
         state_trajectory.append(state)
         control_trajectory.append(control)
         if is_violating(control, state, v_p):
-            print(state)
-            print(control)
+            print('state:',state)
+            print('control:',control)
+            print('time:',t)
             return (False, 
                     np.array(des_trajectory),
                     np.array(state_trajectory),
@@ -73,10 +74,10 @@ def main(opt):
             v_p[0:-1])
 
 if __name__ == '__main__':
-    opt = {'method':'PTW', 
-            'paras': 0.3, 
+    opt = {'method':'CBF', 
+            'paras': 0.1, 
             'optimizer': 'ipopt', 
-            'vp_mode': 2}
+            'vp_mode': 3}
     safety, des, state, control, distance, v_p = main(opt)
     delta_d, delta_v = evaluation(state)
     print("Mean value of abs(delta_d):"+str(delta_d))

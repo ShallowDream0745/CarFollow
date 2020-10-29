@@ -140,7 +140,7 @@ def mpcSolver(state, v_p, opt):
 
 
 def generate_vp(mode,tmax):  # generate v_p sequence
-    # mode = 2  # several modes of v_p
+    # several modes of v_p
     t_sequence = np.arange(tmax)
     if mode == 1:
         half = math.floor(tmax/2)
@@ -161,6 +161,8 @@ def generate_vp(mode,tmax):  # generate v_p sequence
         v_p2 = np.linspace(15, 10, thirdpoint2-thirdpoint1)
         v_p3 = np.ones(tmax-thirdpoint2)*v_p2[-1]
         v_p = np.r_[v_p1, v_p2, v_p3]
+    elif mode == 4:
+        v_p=np.load('D:\CppAndPython\GitTest\\v_p1.npy')
     plt.plot(t_sequence*DT,v_p)
     plt.title('speed of front car: v_p')
     plt.xlabel('t/s')
@@ -202,14 +204,14 @@ def plot_result(des, state, control, distance, vp):
         legend=['Distance', 'Constraints'],
         xlabel='time / s',
         ylabel='d / m',
-        title='$True distance$'
+        title='True Distance'
     )
     plt.subplot(2,2,4)
     myplot(
         [t, control],
         xlabel='time / s',
         ylabel='$a_{fdes}$ / (m/$s^2$)',
-        title='$Control Value$'
+        title='Control Value'
     )
 
     plt.show()
