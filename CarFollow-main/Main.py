@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from utils import generate_vp, mpcSolver, get_diffdes, is_violating, evaluation, plot_result
+from utils import *
 
 # config:
 tmax = 600
@@ -22,7 +22,8 @@ TTC = -2.5  # (s)
 
 def main(opt):
     v_p = generate_vp(opt['vp_mode'], tmax)
-    state = np.array([0, -5, 0])  # suppose v_f[0]=v_p[0]
+    state = np.array([0, -1, 0])  # suppose v_f[0]=v_p[0]
+    des_trajectory = []
     state_trajectory = []
     control_trajectory = []
     distance_trajectory = []
@@ -49,20 +50,38 @@ def main(opt):
             state[1]-DT*state[2] + DT * a_p,
             (1-DT/T_G)*state[2]+K_G/T_G*DT*control
         ])
+
+        des_trajectory.append(get_des(v_p[t]-state[1]))
         distance_trajectory.append(d)
         state_trajectory.append(state)
         control_trajectory.append(control)
         if is_violating(control, state, v_p):
             print(state)
             print(control)
-            return (False, np.array(state_trajectory), np.array(control_trajectory), np.array(distance_trajectory), v_p[0:-1])
+            return (False, 
+                    np.array(des_trajectory),
+                    np.array(state_trajectory),
+                    np.array(control_trajectory),
+                    np.array(distance_trajectory),
+                    v_p[0:-1])
     print('Calculating time: {:.3f}s'.format(cal_time))
-    return True, np.array(state_trajectory), np.array(control_trajectory), np.array(distance_trajectory), v_p[0:-1]
+    return (True,
+            np.array(des_trajectory),
+            np.array(state_trajectory),
+            np.array(control_trajectory),
+            np.array(distance_trajectory),
+            v_p[0:-1])
 
 if __name__ == '__main__':
-    opt = {'method':'PTW', 'paras': 0.3, 'optimizer': 'ipopt', 'vp_mode': 3}
-    _, state, control, distance, v_p = main(opt)
-    delta_d, delta_v = evaluation(state, control)
-    print(delta_d, delta_v)
-    plot_result(state, control, distance, v_p)
-    a = 1
+    opt = {'method':'PTW', 
+            'paras': 0.3, 
+            'optimizer': 'ipopt', 
+            'vp_mode': 2}
+    safety, des, state, control, distance, v_p = main(opt)
+    delta_d, delta_v = evaluation(state)
+    print("Mean value of abs(delta_d):"+str(delta_d))
+    print("Mean value of abs(delta_v):"+str(delta_v))
+    if safety:
+        plot_result(des, state, control, distance, v_p)
+    else:
+        print('Interrupted!')

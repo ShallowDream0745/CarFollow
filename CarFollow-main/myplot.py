@@ -4,6 +4,9 @@ def myplot(data,
            figure_num=1,
            mode="xy",
            fname=None,
+           shownow=False,
+           gridon=True,
+           title=None,
            xlabel=None,
            ylabel=None,
            legend=None,
@@ -16,7 +19,7 @@ def myplot(data,
     plot figures
     """
 
-    _, ax = plt.subplots()
+    # _, ax = plt.subplots()
     if figure_num == 1:
         data = [data]
 
@@ -37,10 +40,10 @@ def myplot(data,
             if mode == "scatter":
                 plt.scatter(d[0], d[1], marker=".", s =5.,)
 
-    plt.tick_params(labelsize=18)
-    labels = ax.get_xticklabels() + ax.get_yticklabels()
-    [label.set_fontname('Calibri') for label in labels]
-    font = {'family': 'Calibri', 'size': '18'}
+    plt.tick_params(labelsize=10)
+    # labels = ax.get_xticklabels() + ax.get_yticklabels()
+    # [label.set_fontname('Calibri') for label in labels]
+    font = {'family': 'Calibri', 'size': '10'}
     if legend is not None:
         plt.legend(legend, loc=legend_loc, ncol=ncol, prop=font)
         # 'lower center'
@@ -51,8 +54,12 @@ def myplot(data,
     if ylim is not None:
         plt.ylim(ylim)
     plt.tight_layout()
-
+    if title:
+        plt.title(title)
+    if gridon:
+        plt.grid(True)
     if fname is None:
-        plt.show()
+        if shownow:
+            plt.show()
     else:
         plt.savefig(fname)

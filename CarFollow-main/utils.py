@@ -25,7 +25,7 @@ W_V = 0.025
 W_A = 5.000
 
 
-# def get_des(x): return R*x*(x-V_F_MEAN)+TAU_H*x+D_0
+def get_des(x): return R*x*(x-V_F_MEAN)+TAU_H*x+D_0
 def get_diffdes(x): return TAU_H+R*(2*x-V_F_MEAN)
 
 
@@ -161,80 +161,71 @@ def generate_vp(mode,tmax):  # generate v_p sequence
         v_p2 = np.linspace(15, 10, thirdpoint2-thirdpoint1)
         v_p3 = np.ones(tmax-thirdpoint2)*v_p2[-1]
         v_p = np.r_[v_p1, v_p2, v_p3]
+    plt.plot(t_sequence*DT,v_p)
+    plt.title('speed of front car: v_p')
+    plt.xlabel('t/s')
+    plt.ylabel('$v_p/(m\cdot s^{-1})$')
+    plt.show()
     return v_p
 
 
-def plot_result(state, control, distance, vp):
+def plot_result(des, state, control, distance, vp):
 
     n = len(state)
     t = np.arange(n) * DT
     data_delta_d = [t, state[:,0]]
+    plt.figure(figsize=(15,8))
+    plt.subplot(2,2,1)
     myplot(
-        data_delta_d,
+        [data_delta_d,[t,des]],
+        figure_num=2,
         xlabel='time / s',
-        ylabel='$\Delta d$ / m'
+        ylabel='$\Delta d$ / m',
+        legend=['$\Delta d$','$d_{des}$'],
+        title='$\Delta d$'
     )
+    plt.subplot(2,2,2)
     data_v = [[t, vp], [t, vp - state[:,1]]]
     myplot(
         data_v,
         figure_num=2,
         legend=['Proceeding Vehicle','Self Vehicle'],
         xlabel='time / s',
-        ylabel='v / (m/s)'
+        ylabel='v / (m/s)',
+        title='$Velocity$'
     )
+    plt.subplot(2,2,3)
     data_d = [[t, distance], [t, D_S0 * np.ones(len(t))]]
     myplot(
         data_d,
         figure_num=2,
         legend=['Distance', 'Constraints'],
         xlabel='time / s',
-        ylabel='d / m'
+        ylabel='d / m',
+        title='$True distance$'
     )
+    plt.subplot(2,2,4)
     myplot(
         [t, control],
         xlabel='time / s',
-        ylabel='$a_{fdes}$ / (m/$s^2$)'
+        ylabel='$a_{fdes}$ / (m/$s^2$)',
+        title='$Control Value$'
     )
 
-def evaluation(state,control):
+    plt.show()
+
+def evaluation(state):
     mean_delta_d = np.mean(np.abs(state[:,0]))
     mean_delta_v = np.mean(np.abs(state[:,1]))
     return mean_delta_d, mean_delta_v
 
-def main_loop(tmax):
-    v_p = generate_vp(tmax)
-    state = np.array([0, 0, 0])  # suppose v_f[0]=v_p[0]
-    trajectory = [ state[0] ]
-    control_trajectory = []
-    cal_time = 0.0
-    start_time = time.time()
-    for t in range(tmax-1):
-        start_time = time.time()
-        # get the control value and the next state
-        # the fourth element is the control
-        control = mpcSolver(state, v_p[t])[3]
-        cal_time += time.time() - start_time
-        a_p = (v_p[t + 1] - v_p[t]) / DT
-        state = np.array([
-            state[0]+DT*state[1]-DT*get_diffdes(v_p[t])*state[2],
-            state[1]-DT*state[2] + DT * a_p,
-            (1-DT/T_G)*state[2]+K_G/T_G*DT*control
-        ])
-        # trajectory.append(v_p[t] - state[1])
-        trajectory.append(state[0])
-        control_trajectory.append(control)
-        if is_violating(control, state, v_p):
-            return (False, trajectory)
-    print(cal_time)
-    return (True, trajectory, control_trajectory)
-
-
 if __name__ == '__main__':
-    IS_USING_CBF = False
-    cbf_lambda = 0.2
-    max_time = 600
-    i = 0
-    result = main_loop(max_time)
-    print(result[0])
-    plot_result(result[1])
-    plot_result(result[2])
+    pass
+    # IS_USING_CBF = False
+    # cbf_lambda = 0.2
+    # max_time = 600
+    # i = 0
+    # result = main_loop(max_time)
+    # print(result[0])
+    # plot_result(result[1])
+    # plot_result(result[2])
