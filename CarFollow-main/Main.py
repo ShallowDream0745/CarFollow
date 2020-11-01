@@ -74,15 +74,16 @@ def main(opt):
             v_p[0:-1])
 
 if __name__ == '__main__':
-    opt = {'method':'CBF', 
+    opt = {'method':'PTW', 
             'paras': 0.1, 
             'optimizer': 'ipopt', 
-            'vp_mode': 3}
+            'vp_mode': 4}
     safety, des, state, control, distance, v_p = main(opt)
     delta_d, delta_v = evaluation(state)
     print("Mean value of abs(delta_d):"+str(delta_d))
     print("Mean value of abs(delta_v):"+str(delta_v))
+    plot_result(des, state, control, distance, v_p)
     if safety:
-        plot_result(des, state, control, distance, v_p)
+        pass
     else:
         print('Interrupted!')
