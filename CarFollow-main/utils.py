@@ -31,8 +31,8 @@ def get_diffdes(x): return TAU_H+R*(2*x-V_F_MEAN)
 
 delta_d_max = np.inf
 delta_d_min = -np.inf
-delta_v_max = 10
-delta_v_min = -10
+delta_v_max = 15
+delta_v_min = -15
 a_f_max = np.inf
 a_f_min = -np.inf
 control_max = 1.5
@@ -176,6 +176,7 @@ def plot_result(des, state, control, distance, vp):
     n = len(state)
     t = np.arange(n) * DT
     data_delta_d = [t, state[:,0]]
+    vp=vp[:n]
     plt.figure(figsize=(15,8))
     plt.subplot(2,2,1)
     myplot(
